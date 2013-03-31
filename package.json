@@ -1,0 +1,28 @@
+{
+  "name": "ripple360",
+  "version": "13.3.30",
+  "description": "Ripple gaming suite",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/houseofsdot/ripple360.git"
+  },
+  "keywords": [
+    "ripple",
+    "gambling"
+  ],
+  "author": "House of SDOT",
+  "license": "MIT",
+  "readmeFilename": "README.md",
+  "dependencies": {
+    "winston": "~0.6.2",
+    "colors": "~0.6.0-1",
+    "express": "~3.1.0",
+    "ws": "~0.4.25",
+    "socket.io": "~0.9.14"
+  }
+}

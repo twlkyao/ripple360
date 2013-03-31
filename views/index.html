@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta http-equiv="cache-control" content="no-cache">
+
+    <title>Ripple 360&deg; - BTC Village</title>
+
+    <!-- bootstrap + jQuery -->
+	<link href="//cdn.libkc.com/bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
+
+	<script src="//cdn.libkc.com/jquery/1/jquery.min.js"></script>
+	<script src="//cdn.libkc.com/bootstrap/js/bootstrap.min.js"></script>
+
+    <!-- btcvillage api -->
+    <script src="//venues-p001.btcvillage.nl/api/btcvillage.js"></script>
+
+	<script src="/socket.io/socket.io.js"></script>
+	<script>
+	// init cache and history containers
+	var gameHistory 	= [];
+
+	// setup socket.io client
+	var socket = io.connect('http://localhost');
+
+	// initialize variables
+
+	socket.on('status', function (data) {
+		console.log('status', data);
+		socket.emit('iveGotTheStatus', { hash: '12345678' });
+	});
+	
+	socket.on('gameAdd', function (data) {
+		console.log('gameAdd', data);
+
+		// add to history array
+		gameHistory.push(data);
+
+		// add to history window
+		$('#help-block-history').append(JSON.stringify(data) + '<br>');
+
+		socket.emit('thanksForTheNewGame', { hash: '** 87654321 **' });
+	});
+	
+	$(function() {
+		// center container frame on screen
+		$('#container').center();
+
+		// load navigation
+		$('#nav').load('nav.html', function () {
+			// TODO: allow auto-register by auth users
+//			register();
+		});
+
+		// load welcome
+		$('#sub-container').load('welcome.html');
+	});
+	
+function test() {
+	socket.emit('test', { testData: '** 88888888 **' });
+}
+
+	function load(page, section, setup) {
+		// dynamically load static pages into sub-container
+		// using (page) namespaces to prevent selector conflicts
+		$('#sub-container').load(
+			page + '.html' + ' #' + page + '-' + section,
+			function () {
+				// run setup script
+				if (typeof setup !== 'undefined')
+					setup();
+			}
+		);
+	}
+
+	function register() {
+// TEST -- set nav-profile
+$("#nav-profile").html('1SDoTrAWQnbJ2ZHvLs3a2XxazqNSishn1');
+	}
+	</script>
+	
+	<style>
+	#container {
+		border: 1pt solid #eef;
+		width: 750px;
+		height: 400px;
+	}
+	#main-logo {
+		margin: 25px;
+	}
+	#intro-buttons {
+		text-align: center;
+		padding: 25px;
+	}
+	
+	.featured-content {
+		padding: 50px 75px;
+	}
+	.content {
+		padding: 10px 25px;
+	}
+
+	#nav-status {
+		color: #3c3;
+	}
+	
+	h1 b {
+		font-size: 125%;
+		color: #c33;
+	}
+	</style>
+</head>
+
+<body>
+    
+<div id="container">
+	<div id="nav" class="navbar">
+		<!-- nav placeholder -->
+	</div>
+
+	<div id="sub-container">
+		<!--content placeholder -->
+	</div>
+</div>
+
+<a href="https://github.com/houseofsdot/btcvillage-ripple360" target="_blank"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png" alt="Fork me on GitHub"></a>
+
+</body>
+</html>
