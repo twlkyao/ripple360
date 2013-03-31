@@ -4,13 +4,16 @@
 <head>
 	<meta http-equiv="cache-control" content="no-cache">
 
-    <title>Ripple 360&deg; - BTC Village</title>
+    <title>Ripple360 - Game Engine / Server</title>
 
     <!-- bootstrap + jQuery -->
 	<link href="//cdn.libkc.com/bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
 
 	<script src="//cdn.libkc.com/jquery/1/jquery.min.js"></script>
 	<script src="//cdn.libkc.com/bootstrap/js/bootstrap.min.js"></script>
+
+    <!-- autoNumeric -->
+    <script src="//cdn.libkc.com/autoNumeric/1/autoNumeric.js"></script>
 
     <!-- btcvillage api -->
     <script src="//venues-p001.btcvillage.nl/api/btcvillage.js"></script>
@@ -68,14 +71,34 @@ function test() {
 			function () {
 				// run setup script
 				if (typeof setup !== 'undefined')
-					setup();
+					eval(setup);
 			}
 		);
 	}
 
 	function register() {
 // TEST -- set nav-profile
-$("#nav-profile").html('1SDoTrAWQnbJ2ZHvLs3a2XxazqNSishn1');
+$("#nav-profile").html('ripple-Address-Shown-Here');
+	}
+
+	function setupRippleCalc() {
+		$("#ripple_owned").autoNumeric('init', {aSign:' XRP', pSign:'s', mDec:6, aPad:false});
+		$("#ripple_val_btc").autoNumeric('init', {aSign:' BTC', pSign:'s', mDec:8});
+		$("#ripple_val_usd").autoNumeric('init', {aSign:' USD', pSign:'s'});
+	}
+
+	function calcRippleVal() {
+		// TODO: pull live data from source???
+		var xrp_btc_rate = 100000;
+		var btc_usd_rate = 93;
+
+		var owned = $("#ripple_owned").autoNumeric('get');
+		// TODO: validate numeric value
+		var val_btc = owned / xrp_btc_rate;
+		var val_usd = owned / (xrp_btc_rate / btc_usd_rate);
+		
+		$("#ripple_val_btc").autoNumeric('set', val_btc);
+		$("#ripple_val_usd").autoNumeric('set', val_usd);
 	}
 	</script>
 	
@@ -90,7 +113,7 @@ $("#nav-profile").html('1SDoTrAWQnbJ2ZHvLs3a2XxazqNSishn1');
 	}
 	#intro-buttons {
 		text-align: center;
-		padding: 25px;
+		padding: 25px 5px;
 	}
 	
 	.featured-content {
@@ -108,6 +131,21 @@ $("#nav-profile").html('1SDoTrAWQnbJ2ZHvLs3a2XxazqNSishn1');
 		font-size: 125%;
 		color: #c33;
 	}
+
+	#ripple_calc {
+		position: absolute;
+		top: 75px;
+		right: 15px;
+		border: 1pt solid #999;
+		padding: 15px;
+
+		font-weight: bold;
+		font-size: 1.2em;
+		line-height: 30px;
+
+		-moz-border-radius: 15px;
+		border-radius: 15px;
+	}
 	</style>
 </head>
 
@@ -123,7 +161,7 @@ $("#nav-profile").html('1SDoTrAWQnbJ2ZHvLs3a2XxazqNSishn1');
 	</div>
 </div>
 
-<a href="https://github.com/houseofsdot/btcvillage-ripple360" target="_blank"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png" alt="Fork me on GitHub"></a>
+<a href="https://github.com/houseofsdot/ripple360" target="_blank"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png" alt="Fork me on GitHub"></a>
 
 </body>
 </html>
