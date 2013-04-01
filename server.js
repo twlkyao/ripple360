@@ -104,11 +104,12 @@ var meta = readMeta(function (meta) {
 	// retreive current ledger index
 	var curLedgerIdx = "n/a";
 
-	debug('Current Ledger Index: '.bold.cyan + curLedgerIdx);
-	debug('Last Ledger Index:    '.bold.cyan + meta.ledger);
-	debug('Last Tx Hash:         '.bold.cyan + meta.hash);
-	debug('Last Timesatmp:       '.bold.cyan + meta.timestamp);
-	console.log();		// spacer
+	info('Current Ledger Index: '.bold.cyan + curLedgerIdx);
+	info('Last Ledger Index:    '.bold.cyan + meta.ledger);
+	info('Last Tx Hash:         '.bold.cyan + meta.hash);
+	info('Last Timesatmp:       '.bold.cyan + meta.timestamp);
+
+	console.log();		// empty spacer
 
 	// TODO: add support for server resume
 	//		 we will need to retrieve the most recent
@@ -152,20 +153,27 @@ var meta = readMeta(function (meta) {
 		if (data.validated && data.account != RIPPLE_ADDRESS) {
 			logSpacer();	// log spacer
 
-			debug('Player Account:   '.bold + data.account);
+			info('Player Account:    '.bold + data.account);
+			info('Bet Amount:        '.bold + parseInt(data.amount / RIPPLE_SINGLE));
+			info('Our Bank Roll:     '.bold + parseInt(data.bankroll / RIPPLE_SINGLE) + ' XRP');
+
 			debug('Ledger Index:     '.bold + data.ledger);
 			debug('Transaction Hash: '.bold + data.hash);
-			debug('Bet Amount:       '.bold + parseInt(data.amount / RIPPLE_SINGLE));
-			debug('Our Bank Roll:    '.bold + parseInt(data.bankroll / RIPPLE_SINGLE) + ' XRP');
 
 			// do we have a destination tag
-			// TODO: detect tag and perform specific actions
-			// 		 e.g. 777 = refill transaction (DO NOT RUN GAMES)
 			if (data.tag)
 				debug('Destination Tag:  '.bold + data.tag);
 
-			// run the Coin Flip game
-			runCoinFlip(data);
+			// perform specific actions based on Destination Tag
+			// e.g. 777 = refill / donate transaction (DO NOT RUN GAMES)
+			if (data.tag && data.tag == 777) {
+				logSpacer();	// log spacer
+
+				info('Performing refill / donation to account...'.bold.red);
+			} else {
+				// run the Coin Flip game
+				runCoinFlip(data);
+			}
 		} else if (data.txs) {
 			logSpacer();	// log spacer
 
@@ -176,16 +184,20 @@ var meta = readMeta(function (meta) {
 			 */
 
 			var numTxs = data.txs.length;
-			info('There are '.bold.blue + numTxs.toString().bold + 
-				' transactions waiting to be processed.'.bold.blue);
+
+			info('There are '.bold.red + numTxs.toString().bold + 
+				' transactions waiting to be processed.'.bold.red);
+			
+			console.log();		// empty spacer
 
 			// run pending Coin Flip games
 			for (var i = 0; i < numTxs; i++) {
-				debug('Player Account:   '.bold + data.txs[i].account);
+				info('Player Account:    '.bold + data.txs[i].account);
+				info('Bet Amount:        '.bold + parseInt(data.txs[i].amount / RIPPLE_SINGLE));
+				info('Our Bank Roll:     '.bold + parseInt(data.txs[i].bankroll / RIPPLE_SINGLE) + ' XRP');
+
 				debug('Ledger Index:     '.bold + data.txs[i].ledger);
 				debug('Transaction Hash: '.bold + data.txs[i].hash);
-				debug('Bet Amount:       '.bold + parseInt(data.txs[i].amount / RIPPLE_SINGLE));
-				debug('Our Bank Roll:    '.bold + parseInt(data.txs[i].bankroll / RIPPLE_SINGLE) + ' XRP');
 
 				// do we have a destination tag
 				// TODO: detect tag and perform specific actions
@@ -193,8 +205,14 @@ var meta = readMeta(function (meta) {
 				if (data.txs[i].tag)
 					debug('Destination Tag:  '.bold + data.txs[i].tag);
 
-				// run the Coin Flip game
-				runCoinFlip(data.txs[i]);
+				// perform specific actions based on Destination Tag
+				// e.g. 777 = refill / donate transaction (DO NOT RUN GAMES)
+				if (data.tag && data.tag == 777) {
+					info('Performing refill / donation to account...'.bold.blue);
+				} else {
+					// run the Coin Flip game
+					runCoinFlip(data.txs[i]);
+				}
 			}
 
 			/*
@@ -210,18 +228,20 @@ var meta = readMeta(function (meta) {
 
 			info('Requesting LIVE transactions...'.bold.blue);
 		} else if (data.result) {
-			logSpacer();	// log spacer
+			if (DEBUG)
+				logSpacer();	// log spacer
 
 			debug(data.message);
 		} else {
-//			logSpacer();	// log spacer
+			if (DEBUG)
+				logSpacer();	// log spacer
 
 			// TODO: we should provide confirmation that the payment
 			// 		 was sent, received and processed successfully
 			//
 			//		 should also writeMeta when a subscribed
 			// 		 tx is included in a closed ledger
-//			debug(message);
+			debug(message);
 		}
 	});
 });
@@ -291,6 +311,8 @@ function runCoinFlip(data) {
 
 	// update meta data
 	writeMeta(data);
+
+	logSpacer();	// log spacer
 }
 
 /**
@@ -485,7 +507,6 @@ function debug(message) {
 
 function logSpacer() {
 	console.log();
-	console.log('------------------------------------------------------------');
+	console.log('======================================================='.grey);
 	console.log();
-
 }
