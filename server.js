@@ -80,12 +80,19 @@ var loggerConfig = {
 	}
 };
 
+// set logger date to today
+var date 	= new Date();
+var year 	= date.getFullYear();
+var month 	= (date.getMonth() + 1).toString().length == 1 ? '0' + (date.getMonth() + 1) : (date.getMonth() + 1);
+var day 	= date.getDate().toString().length == 1 ? '0' + date.getDate() : date.getDate();
+var logDate = year + '.' + month + '.' + day;
+
 // create logger
 var logger = new (winston.Logger)(
 	{
 		transports: [
 			new (winston.transports.Console)({ colorize: 'true'}),
-			new (winston.transports.File)({ filename: 'logs/2013.03.23' })
+			new (winston.transports.File)({ filename: 'logs/' + logDate })
 		]
 	},
 	{ levels: loggerConfig.levels }
@@ -93,6 +100,16 @@ var logger = new (winston.Logger)(
 
 // add logger colors
 winston.addColors(loggerConfig.colors);
+
+// verify logger directory (Synchronous)
+if (!fs.existsSync('logs')) {
+	// create logger directory (Synchronous)
+	fs.mkdirSync('logs');
+
+	info('Created /logs directory'.bold.red);
+
+	console.log();		// empty spacer
+}
 
 // initialize web socket instance
 this.ws = null;
