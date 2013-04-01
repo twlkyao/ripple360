@@ -25,13 +25,20 @@ var RIPPLE_SERVER 		= 'wss://s1.ripple.com:51233';
 // 		 should probably write into a class to support instance variables
 var RIPPLE_ADDRESS 		= config.address;		// game address
 var RIPPLE_ADDRESS_KEY 	= config.key;			// secret key
-var RIPPLE_SINGLE		= 1000000;				// value of a single ripple
+var RIPPLE_SINGLE		= 1000000;				// quantity of "drops" in a single ripple
 
 // venue settings
-var VENUE_APIKEY 			= "RIPPLE360-DEMO";	// TODO: will replace address array
+var VENUE_APIKEY 			= 'RIPPLE360-DEMO';	// TODO: will replace address array
 var VENUE_PORT 				= 8003;				// front-end port (e.g. http://localhost:8000)
 var VENUE_WIN_THRESHOLD		= 32768;			// TODO: localize to individual game engines
 var VENUE_WIN_PAYOUT		= 0.9801;			// 98.01% payout percentage (house edge is 1.99%)
+
+// bankroll management
+var BANKROLL_MAX 			= 200000;			// maximum bankroll to trigger cashout
+var BANKROLL_CASHOUT_VALUE 	= 100000;			// quantity of XRP to cashout
+var BANKROLL_CASHOUT_ADDR 	= '';				// address to deliver cashout
+
+// debugging messages
 var DEBUG 					= true;
 
 // TODO: retreive from persistent storage
@@ -109,6 +116,10 @@ var meta = readMeta(function (meta) {
 	//
 	//		 process all PENDING transaction BEFORE
 	// 		 we send subscribe request to rippled
+	//
+	// 		 WARNING!!! We currently re-process the last
+	// 		 ledger to avoid missing any transactions
+	// 		 we MUST prevent from double payouts
 
 	// connect to RIPPLED socket server
 	this.ws = new WebSocket(RIPPLE_SERVER);
@@ -116,24 +127,25 @@ var meta = readMeta(function (meta) {
 	this.ws.on('open', function() {
 		info('Connected to ' + 'RIPPLED'.bold.blue + ' successfully...');
 
+		// account information
 		var msg = {
-			"command"	: "subscribe",
-			"accounts"	: [ RIPPLE_ADDRESS ]
+			"command" 	: "account_info",
+			"account" 	: RIPPLE_ADDRESS
 		}
 
-var index = 0;
-var msg = {
-	"command"	: 'tx_history',
-	"params"	: [{'start' : index}]
-}
+//		self.ws.send(JSON.stringify(msg));
 
-		// send subscription message
+		// transaction history (from last meta checkpoint)
+		var msg = {
+			"command" 			: "account_tx", 
+			"account" 			: RIPPLE_ADDRESS,
+			"ledger_index_min" 	: meta.ledger
+		}
+
 		self.ws.send(JSON.stringify(msg));
 	});
 
 	this.ws.on('message', function(message) {
-debug(message);
-return;
 		// parse the server's response
 		var data = parseResponse(message);
 
@@ -154,6 +166,49 @@ return;
 
 			// run the Coin Flip game
 			runCoinFlip(data);
+		} else if (data.txs) {
+			logSpacer();	// log spacer
+
+			debug(JSON.stringify(data.txs));
+
+			/*
+			 * process the pending transactions since last ledger index
+			 */
+
+			var numTxs = data.txs.length;
+			info('There are '.bold.blue + numTxs.toString().bold + 
+				' transactions waiting to be processed.'.bold.blue);
+
+			// run pending Coin Flip games
+			for (var i = 0; i < numTxs; i++) {
+				debug('Player Account:   '.bold + data.txs[i].account);
+				debug('Ledger Index:     '.bold + data.txs[i].ledger);
+				debug('Transaction Hash: '.bold + data.txs[i].hash);
+				debug('Bet Amount:       '.bold + parseInt(data.txs[i].amount / RIPPLE_SINGLE));
+				debug('Our Bank Roll:    '.bold + parseInt(data.txs[i].bankroll / RIPPLE_SINGLE) + ' XRP');
+
+				// do we have a destination tag
+				// TODO: detect tag and perform specific actions
+				// 		 e.g. 777 = refill transaction (DO NOT RUN GAMES)
+				if (data.txs[i].tag)
+					debug('Destination Tag:  '.bold + data.txs[i].tag);
+
+				// run the Coin Flip game
+				runCoinFlip(data.txs[i]);
+			}
+
+			/*
+			 * subscribe to address and start processing
+			 * live transactions
+			 */
+			var msg = {
+				"command"	: "subscribe",
+				"accounts"	: [ RIPPLE_ADDRESS ]
+			}
+
+			self.ws.send(JSON.stringify(msg));
+
+			info('Requesting LIVE transactions...'.bold.blue);
 		} else if (data.result) {
 			logSpacer();	// log spacer
 
@@ -163,6 +218,9 @@ return;
 
 			// TODO: we should provide confirmation that the payment
 			// 		 was sent, received and processed successfully
+			//
+			//		 should also writeMeta when a subscribed
+			// 		 tx is included in a closed ledger
 //			debug(message);
 		}
 	});
@@ -240,7 +298,7 @@ function runCoinFlip(data) {
  */
 function fairplayPoint(data, gameType) {
 	info('Calculating Fairplay for '.bold.blue + 
-		gameType.toString().bold.yellow + '-bit'.bold.yellow + 
+		gameType.toString().bold + '-bit'.bold + 
 		' Game...'.bold.blue);
 
 	// init hmac 256
@@ -276,7 +334,6 @@ function parseResponse(message, subAddr) {
 	var data 	= {};
 
 	if (json.type == "transaction") {
-		data.status 	= json.status;
 		data.validated 	= json.validated;
 		data.ledger 	= json.ledger_index
 
@@ -295,6 +352,39 @@ function parseResponse(message, subAddr) {
 	} else if (json.type == "response" && json.result.engine_result) {
 		data.result 	= json.result.engine_result;
 		data.message	= json.result.engine_result_message;
+	} else if (json.type == "response" && json.result.transactions) {
+		// initialize tx index
+		var index = 0;
+
+		// initialize txs array
+		data.txs  = [];
+
+		json.result.transactions.forEach(function (json) {
+			// initialize txs object
+			data.txs[index] 			= {};
+
+			data.txs[index].validated 	= json.validated;
+			data.txs[index].ledger 		= json.tx.inLedger
+
+			data.txs[index].account 	= json.tx.Account;
+			data.txs[index].amount 		= parseInt(json.tx.Amount);
+			data.txs[index].fee 		= parseInt(json.tx.Fee);
+			data.txs[index].date 		= json.tx.date;
+			data.txs[index].hash 		= json.tx.hash;
+
+			// check for destination tag
+			if (json.tx.DestinationTag)
+				data.txs[index].tag 	= json.tx.DestinationTag;
+
+			// we need the server's bankroll
+			// TODO: this needs to pull from the ACTIVE account state
+			// 		 historical data could result in substantial losses
+			// 		 for now, keep this number low
+			data.txs[index].bankroll 	= (5000 * RIPPLE_SINGLE);	// FIX ASAP
+
+			// increment the index
+			index++;
+		});
 	}
 
 	return data;
