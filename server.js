@@ -207,28 +207,31 @@ var meta = readMeta(function (meta) {
 			
 			console.log();		// empty spacer
 
-			// run pending Coin Flip games
-			for (var i = 0; i < numTxs; i++) {
-				info('Player Account:    '.bold + data.txs[i].account);
-				info('Bet Amount:        '.bold + parseInt(data.txs[i].amount / RIPPLE_SINGLE));
-				info('Our Bank Roll:     '.bold + parseInt(data.txs[i].bankroll / RIPPLE_SINGLE) + ' XRP');
+			// make sure this is not an INITIAL execution
+			if (meta.ledger != -1) {
+				// run pending Coin Flip games
+				for (var i = 0; i < numTxs; i++) {
+					info('Player Account:    '.bold + data.txs[i].account);
+					info('Bet Amount:        '.bold + parseInt(data.txs[i].amount / RIPPLE_SINGLE));
+					info('Our Bank Roll:     '.bold + parseInt(data.txs[i].bankroll / RIPPLE_SINGLE) + ' XRP');
 
-				debug('Ledger Index:     '.bold + data.txs[i].ledger);
-				debug('Transaction Hash: '.bold + data.txs[i].hash);
+					debug('Ledger Index:     '.bold + data.txs[i].ledger);
+					debug('Transaction Hash: '.bold + data.txs[i].hash);
 
-				// do we have a destination tag
-				// TODO: detect tag and perform specific actions
-				// 		 e.g. 777 = refill transaction (DO NOT RUN GAMES)
-				if (data.txs[i].tag)
-					debug('Destination Tag:  '.bold + data.txs[i].tag);
+					// do we have a destination tag
+					// TODO: detect tag and perform specific actions
+					// 		 e.g. 777 = refill transaction (DO NOT RUN GAMES)
+					if (data.txs[i].tag)
+						debug('Destination Tag:  '.bold + data.txs[i].tag);
 
-				// perform specific actions based on Destination Tag
-				// e.g. 777 = refill / donate transaction (DO NOT RUN GAMES)
-				if (data.tag && data.tag == 777) {
-					info('Performing refill / donation to account...'.bold.blue);
-				} else {
-					// run the Coin Flip game
-					runCoinFlip(data.txs[i]);
+					// perform specific actions based on Destination Tag
+					// e.g. 777 = refill / donate transaction (DO NOT RUN GAMES)
+					if (data.tag && data.tag == 777) {
+						info('Performing refill / donation to account...'.bold.blue);
+					} else {
+						// run the Coin Flip game
+						runCoinFlip(data.txs[i]);
+					}
 				}
 			}
 
@@ -477,7 +480,7 @@ function readMeta(callback) {
 // write meta data to file
 function writeMeta(data) {
 	if (typeof data === 'undefined') {
-		var ledger 	= 0;
+		var ledger 	= -1;
 		var hash 	= "";
 	} else {
 		var ledger 	= data.ledger;
