@@ -281,6 +281,7 @@ function runCoinFlip(data) {
 
 	// set to 20% of total bankroll
 	var betLimit = parseInt(data.bankroll / 5);
+betLimit = 1000000000;
 	debug('Bet Limit: '.bold + betLimit + ' (~' + parseInt(betLimit / RIPPLE_SINGLE) + ' XRP)');
 
 	// calculate the fairplay point
@@ -310,7 +311,7 @@ function runCoinFlip(data) {
 	// TODO: for security reasons, its best to sign the transaction
 	// 		 BEFORE sending it off to the ripple daemon
 	//		 in order to protect the address' secret key
-	var msg = {
+/*	var msg = {
 		'command' : 'submit',
 		'tx_json' : {
 			'TransactionType' : 'Payment',
@@ -323,6 +324,17 @@ function runCoinFlip(data) {
 			}
 		},
 		'secret'  : RIPPLE_ADDRESS_KEY,
+	}*/
+	
+	var msg = {
+		'command' 	: 'submit',
+		'tx_json' 	: {
+			'TransactionType' 	: 'Payment',
+			'Account' 			: RIPPLE_ADDRESS,
+			'Destination' 		: data.account,
+			'Amount' 			: payout
+		},
+		'secret'	: RIPPLE_ADDRESS_KEY
 	}
 
 	// send the payment transaction
@@ -372,6 +384,7 @@ function fairplayPoint(data, gameType) {
  * (based on a "subscribed" address)
  */
 function parseResponse(message, subAddr) {
+ console.log(message);
 	var json 	= JSON.parse(message);
 	var data 	= {};
 
